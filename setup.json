@@ -1,8 +1,8 @@
 {
-  "name": "python-models",
+  "name": "datamodels",
   "version": "0.1.1",
   "description": "Models for Pythonistas",
-  "url": "https://github.com/blackearth/python-models",
+  "url": "https://github.com/blackearth/datamodels",
   "author": "Sean Harrison",
   "author_email": "sah@bookgenesis.com",
   "license": "MPL 2.0",
@@ -13,7 +13,7 @@
     "Programming Language :: Python :: 3"
   ],
   "entry_points": {},
-  "install_requires": ["attrs"],
+  "install_requires": [],
   "extras_require": {
     "dev": ["twine", "nose", "coverage"],
     "test": []
