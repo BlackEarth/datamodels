@@ -1,0 +1,26 @@
+{
+  "name": "python-models",
+  "version": "0.1.1",
+  "description": "Models for Pythonistas",
+  "url": "https://github.com/blackearth/python-models",
+  "author": "Sean Harrison",
+  "author_email": "sah@bookgenesis.com",
+  "license": "MPL 2.0",
+  "classifiers": [
+    "Development Status :: 1 - Planning",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+    "Programming Language :: Python :: 3"
+  ],
+  "entry_points": {},
+  "install_requires": ["attrs"],
+  "extras_require": {
+    "dev": ["twine", "nose", "coverage"],
+    "test": []
+  },
+  "package_data": {
+    "": []
+  },
+  "data_files": [],
+  "scripts": []
+}
