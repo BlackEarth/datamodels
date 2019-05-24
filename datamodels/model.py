@@ -1,8 +1,10 @@
 import json, sys
+from importlib import import_module
 from dataclasses import asdict
 
 
 class Model:
+    SQL_DIALECT = None
     PRIMARY_KEY = []
     VALIDATORS = {}
 
@@ -16,6 +18,15 @@ class Model:
 
     def json(self, empty=True, indent=None):
         return json.dumps(self.dict(empty=empty), indent=indent)
+
+    def sql(self, query=None, params=None, empty=True, pk=None, relation=None, dialect=None):
+        SQL = import_module('sqlquery.sql').SQL
+        return SQL(
+            query=query or [],
+            params=params or self.dict(empty=empty),
+            pk=pk or self.PRIMARY_KEY,
+            relation=relation or self.RELATION.lower() or self.__class__.__name__.lower() + 's',
+            dialect=dialect or self.SQL_DIALECT)
 
     def keys(self):
         return (k for k in self.dict().keys())
@@ -58,4 +69,3 @@ class Model:
         if field not in cls.VALIDATORS:
             cls.VALIDATORS[field] = []
             cls.VALIDATORS[field].append(validator)
-
