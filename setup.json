@@ -1,13 +1,13 @@
 {
   "name": "datamodels",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Models for Pythonistas",
   "url": "https://github.com/blackearth/datamodels",
   "author": "Sean Harrison",
   "author_email": "sah@bookgenesis.com",
   "license": "MPL 2.0",
   "classifiers": [
-    "Development Status :: 1 - Planning",
+    "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
     "Programming Language :: Python :: 3"
