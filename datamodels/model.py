@@ -1,11 +1,21 @@
 import json, sys
 from importlib import import_module
 from dataclasses import asdict
+from .util import nameify, classproperty
 
 
 class Model:
     SQL_DIALECT = None
-    PRIMARY_KEY = []
+
+    @classproperty
+    def RELATION(cls):
+        return nameify(cls.__name__).lower() + 's'
+
+    @classproperty
+    def PRIMARY_KEY(cls):
+        """default primary key is a list with the first field name."""
+        return list(cls.__dataclass_fields__.keys())[0:1]
+
     VALIDATORS = {}
 
     @classmethod
@@ -63,9 +73,3 @@ class Model:
                 if len(err) > 0:
                     validation_errors[field] = err
         return validation_errors
-
-    @classmethod
-    def add_validator(cls, field, validator):
-        if field not in cls.VALIDATORS:
-            cls.VALIDATORS[field] = []
-            cls.VALIDATORS[field].append(validator)
