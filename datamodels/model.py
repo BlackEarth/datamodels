@@ -57,17 +57,17 @@ class Model:
         SQL = import_module('sqlquery.sql').SQL
         return SQL(
             query=query or [],
-            fields=fields or list(self.dict().keys()),
+            fields=fields or list(self.keys()),
             relation=relation or self.RELATION,
             keys=keys or self.PRIMARY_KEY,
             updates=updates or self.nopk(),
             dialect=dialect or self.SQL_DIALECT)
 
-    def keys(self):
-        return [k for k in self.dict().keys()]
+    def keys(self, empty=False):
+        return [k for k in self.dict(empty=empty).keys()]
 
-    def values(self):
-        return [v for k, v in self.dict().items()]
+    def values(self, empty=False):
+        return [v for k, v in self.dict(empty=empty).items()]
 
     def items(self, empty=False):
         return self.dict(empty=empty).items()
