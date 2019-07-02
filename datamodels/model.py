@@ -1,11 +1,14 @@
 import json, sys
 from importlib import import_module
-from dataclasses import asdict
+from dataclasses import dataclass, asdict
 from .util import nameify, classproperty
 
 
 class Model:
+    CONVERTERS = {}
+    VALIDATORS = {}
     SQL_DIALECT = None
+    XML_NAMESPACE = None
 
     @classproperty
     def RELATION(cls):
@@ -16,39 +19,70 @@ class Model:
         """default primary key is a list with the first field name."""
         return list(cls.__dataclass_fields__.keys())[0:1]
 
-    VALIDATORS = {}
+    PK = PRIMARY_KEY
 
     @classmethod
     def from_data(cls, data):
         """pull field values out of a data source, ignoring data that is not in the model"""
         return cls(**{key: data[key] for key in cls.__dataclass_fields__ if key in data})
 
-    def dict(self, empty=True):
+    def __post_init__(self):
+        """cast the input field values to the declared type, and then run any declared converters"""
+        for field in self.__dataclass_fields__:
+            field_type = self.__dataclass_fields__[field].type
+            try:
+                value = getattr(self, field)
+                if value and field in self.CONVERTERS:
+                    for converter in self.CONVERTERS[field]:
+                        setattr(self, field, converter(value))
+            except ValueError as exc:
+                if not exc.args:
+                    exc.args = ('',)
+                exc.args = (f'{self.__class__.__name__}.{field}: ' + ' '.join(exc.args),)
+                raise
+
+    def dict(self, empty=False):
         return {k: v for k, v in asdict(self).items() if bool(v) is True or empty is True}
 
-    def json(self, empty=True, indent=None):
+    def json(self, empty=False, indent=None):
         return json.dumps(self.dict(empty=empty), indent=indent)
 
-    def sql(self, query=None, params=None, empty=True, pk=None, relation=None, dialect=None):
+    def sql(self,
+            query=None,
+            fields=None,
+            relation=None,
+            keys=None,
+            updates=None,
+            dialect=None):
         SQL = import_module('sqlquery.sql').SQL
         return SQL(
             query=query or [],
-            params=params or self.dict(empty=empty),
-            pk=pk or self.PRIMARY_KEY,
-            relation=relation or self.RELATION.lower() or self.__class__.__name__.lower() + 's',
+            fields=fields or list(self.dict().keys()),
+            relation=relation or self.RELATION,
+            keys=keys or self.PRIMARY_KEY,
+            updates=updates or self.nopk(),
             dialect=dialect or self.SQL_DIALECT)
 
     def keys(self):
-        return (k for k in self.dict().keys())
+        return [k for k in self.dict().keys()]
 
     def values(self):
-        return (v for k, v in self.dict().items())
+        return [v for k, v in self.dict().items()]
 
     def items(self):
         return self.dict().items()
 
     def __iter__(self):
-        return self.keys()
+        for key in self.keys():
+            yield key
+
+    def nopk(self):
+        """data that are not part of the PRIMARY_KEY"""
+        return {k: v for k, v in self.items() if k not in self.PK}
+
+    def pk(self):
+        """data in the PRIMARY_KEY"""
+        return {k: v for k, v in self.items() if k in self.PK}
 
     def is_valid(self):
         return not (bool(self.errors()))
