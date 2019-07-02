@@ -57,7 +57,7 @@ class Model:
         SQL = import_module('sqlquery.sql').SQL
         return SQL(
             query=query or [],
-            fields=fields or list(self.dict().keys()),
+            fields=fields or list(self.dict(empty=True).keys()),
             relation=relation or self.RELATION,
             keys=keys or self.PRIMARY_KEY,
             updates=updates or self.nopk(),
@@ -69,8 +69,8 @@ class Model:
     def values(self):
         return [v for k, v in self.dict().items()]
 
-    def items(self):
-        return self.dict().items()
+    def items(self, empty=False):
+        return self.dict(empty=empty).items()
 
     def __iter__(self):
         for key in self.keys():
@@ -78,11 +78,11 @@ class Model:
 
     def nopk(self):
         """data that are not part of the PRIMARY_KEY"""
-        return {k: v for k, v in self.items() if k not in self.PK}
+        return {k: v for k, v in self.items(empty=True) if k not in self.PK}
 
     def pk(self):
         """data in the PRIMARY_KEY"""
-        return {k: v for k, v in self.items() if k in self.PK}
+        return {k: v for k, v in self.items(empty=True) if k in self.PK}
 
     def is_valid(self):
         return not (bool(self.errors()))
