@@ -47,21 +47,21 @@ class Model:
     def json(self, empty=False, indent=None):
         return json.dumps(self.dict(empty=empty), indent=indent)
 
-    def sql(self,
-            query=None,
-            fields=None,
-            relation=None,
-            keys=None,
-            updates=None,
-            dialect=None):
+    def sql(self, query=None, fields=None, relation=None, keys=None, updates=None, dialect=None):
         SQL = import_module('sqlquery.sql').SQL
+        query = query or []
+        fields = fields or list(self.keys())
+        relation = relation or self.RELATION
+        keys = keys or [key for key in self.PK if key in fields]
+        updates = updates or [key for key in self.nopk() if key in fields]
+        dialect = dialect or self.SQL_DIALECT
         return SQL(
             query=query or [],
-            fields=fields or list(self.keys()),
-            relation=relation or self.RELATION,
-            keys=keys or self.PRIMARY_KEY,
-            updates=updates or self.nopk(),
-            dialect=dialect or self.SQL_DIALECT)
+            fields=fields,
+            relation=relation,
+            keys=keys,
+            updates=updates,
+            dialect=dialect)
 
     def keys(self, empty=False):
         return [k for k in self.dict(empty=empty).keys()]
