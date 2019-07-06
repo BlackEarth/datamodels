@@ -1,4 +1,14 @@
+from datetime import date, datetime, time
+import json
 import re
+
+
+class JSONEncoder(json.JSONEncoder):
+
+    def default(self, obj):
+        if isinstance(obj, datetime) or isinstance(obj, date) or isinstance(obj, time):
+            return str(obj)
+        return super().default(obj)
 
 
 class classproperty(object):

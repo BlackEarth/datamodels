@@ -1,7 +1,7 @@
 import json, sys
 from importlib import import_module
 from dataclasses import dataclass, asdict
-from .util import nameify, classproperty
+from .util import nameify, classproperty, JSONEncoder
 
 
 class Model:
@@ -45,7 +45,7 @@ class Model:
         return {k: v for k, v in asdict(self).items() if bool(v) is True or empty is True}
 
     def json(self, empty=False, indent=None):
-        return json.dumps(self.dict(empty=empty), indent=indent)
+        return json.dumps(self.dict(empty=empty), indent=indent, cls=JSONEncoder)
 
     def sql(self, query=None, fields=None, relation=None, keys=None, updates=None, dialect=None):
         SQL = import_module('sqlquery.sql').SQL
