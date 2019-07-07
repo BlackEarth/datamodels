@@ -47,13 +47,20 @@ class Model:
     def json(self, empty=False, indent=None):
         return json.dumps(self.dict(empty=empty), indent=indent, cls=JSONEncoder)
 
-    def sql(self, query=None, fields=None, relation=None, keys=None, updates=None, dialect=None):
+    def sql(self,
+            query=None,
+            fields=None,
+            relation=None,
+            keys=None,
+            updates=None,
+            dialect=None,
+            empty=True):
         SQL = import_module('sqlquery.sql').SQL
         query = query or []
-        fields = fields or list(self.keys())
+        fields = fields or list(self.keys(empty=empty))
         relation = relation or self.RELATION
-        keys = keys or [key for key in self.PK if key in fields]
-        updates = updates or [key for key in self.nopk() if key in fields]
+        keys = keys or [key for key in fields if key in self.PK]
+        updates = updates or [key for key in fields if key not in self.PK]
         dialect = dialect or self.SQL_DIALECT
         return SQL(
             query=query or [],
@@ -76,9 +83,9 @@ class Model:
         for key in self.keys():
             yield key
 
-    def nopk(self):
+    def nopk(self, empty=False):
         """data that are not part of the PRIMARY_KEY"""
-        return {k: v for k, v in self.items() if k not in self.PK}
+        return {k: v for k, v in self.items(empty=empty) if k not in self.PK}
 
     def pk(self):
         """data in the PRIMARY_KEY"""
