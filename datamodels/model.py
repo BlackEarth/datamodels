@@ -23,12 +23,17 @@ class Model:
     def __post_init__(self):
         """cast the input field values to the declared type, and then run any declared converters"""
         for field in self.__dataclass_fields__:
-            field_type = self.__dataclass_fields__[field].type
             try:
                 value = getattr(self, field)
-                if value and field in self.CONVERTERS:
+                if value:
+                    # if converters are specified, use those;
+                    # otherwise, cast the value to the field_type
+                    if field in self.CONVERTERS:
                         for converter in self.CONVERTERS[field]:
                             setattr(self, field, converter(value))
+                    else:
+                        field_type = self.__dataclass_fields__[field].type
+                        setattr(self, field, field_type(value))
             except ValueError as exc:
                 if not exc.args:
                     exc.args = ('',)
