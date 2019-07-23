@@ -1,25 +1,19 @@
 import json, sys
-from importlib import import_module
-from dataclasses import dataclass, asdict
-from .util import nameify, classproperty, JSONEncoder
+from dataclasses import asdict
+from .util import JSONEncoder
 
 
 class Model:
+    """
+    Create a model that builds on @dataclasses.dataclass to provide:
+    * automatic post-init
+    * converters 
+    * validators
+    * input
+    * output
+    """
     CONVERTERS = {}
     VALIDATORS = {}
-    SQL_DIALECT = None
-    XML_NAMESPACE = None
-
-    @classproperty
-    def RELATION(cls):
-        return nameify(cls.__name__).lower() + 's'
-
-    @classproperty
-    def PRIMARY_KEY(cls):
-        """default primary key is a list with the first field name."""
-        return list(cls.__dataclass_fields__.keys())[0:1]
-
-    PK = PRIMARY_KEY
 
     @classmethod
     def from_data(cls, data):
@@ -33,8 +27,8 @@ class Model:
             try:
                 value = getattr(self, field)
                 if value and field in self.CONVERTERS:
-                    for converter in self.CONVERTERS[field]:
-                        setattr(self, field, converter(value))
+                        for converter in self.CONVERTERS[field]:
+                            setattr(self, field, converter(value))
             except ValueError as exc:
                 if not exc.args:
                     exc.args = ('',)
@@ -46,29 +40,6 @@ class Model:
 
     def json(self, empty=False, indent=None):
         return json.dumps(self.dict(empty=empty), indent=indent, cls=JSONEncoder)
-
-    def sql(self,
-            query=None,
-            fields=None,
-            relation=None,
-            keys=None,
-            updates=None,
-            dialect=None,
-            empty=True):
-        SQL = import_module('sqlquery.sql').SQL
-        query = query or []
-        fields = fields or list(self.keys(empty=empty))
-        relation = relation or self.RELATION
-        keys = keys or [key for key in fields if key in self.PK]
-        updates = updates or [key for key in fields if key not in self.PK]
-        dialect = dialect or self.SQL_DIALECT
-        return SQL(
-            query=query or [],
-            fields=fields,
-            relation=relation,
-            keys=keys,
-            updates=updates,
-            dialect=dialect)
 
     def keys(self, empty=False):
         return [k for k in self.dict(empty=empty).keys()]
@@ -82,14 +53,6 @@ class Model:
     def __iter__(self):
         for key in self.keys():
             yield key
-
-    def nopk(self, empty=False):
-        """data that are not part of the PRIMARY_KEY"""
-        return {k: v for k, v in self.items(empty=empty) if k not in self.PK}
-
-    def pk(self):
-        """data in the PRIMARY_KEY"""
-        return {k: v for k, v in self.items() if k in self.PK}
 
     def is_valid(self):
         return not (bool(self.errors()))
