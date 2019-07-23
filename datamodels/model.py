@@ -16,9 +16,11 @@ class Model:
     VALIDATORS = {}
 
     @classmethod
-    def from_data(cls, data):
+    def from_data(cls, data, keys=None):
         """pull field values out of a data source, ignoring data that is not in the model"""
-        return cls(**{key: data[key] for key in cls.__dataclass_fields__ if key in data})
+        if not keys:
+            keys = cls.__dataclass_fields__.keys()
+        return cls(**{key: data[key] for key in keys if key in data})
 
     def __post_init__(self):
         """cast the input field values to the declared type, and then run any declared converters"""
