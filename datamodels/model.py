@@ -58,16 +58,16 @@ class Model:
                 raise
 
     def dict(self, empty=False):
-        return {k: v for k, v in asdict(self).items() if bool(v) is True or empty is True}
+        return {k: v for k, v in asdict(self).items() if empty is True or bool(v) is True}
 
     def json(self, empty=False, indent=None):
         return json.dumps(self.dict(empty=empty), indent=indent, cls=JSONEncoder)
 
     def keys(self, empty=False):
-        return [k for k in self.dict(empty=empty).keys()]
+        return self.dict(empty=empty).keys()
 
     def values(self, empty=False):
-        return [v for k, v in self.dict(empty=empty).items()]
+        return iter([v for k, v in self.dict(empty=empty).items()])
 
     def items(self, empty=False):
         return self.dict(empty=empty).items()
