@@ -77,13 +77,14 @@ class Model:
             yield key
 
     def is_valid(self):
-        return not (bool(self.errors()))
+        return not (bool(self.errors))
 
     def assert_valid(self):
-        errors = self.errors()
+        errors = self.errors
         if bool(errors) is True:
             raise ValueError("Validation failed: %s" % json.dumps(errors, indent=2))
 
+    @property    
     def errors(self):
         """returns a dict of validation errors, keyed to attribute names"""
         validation_errors = {}
