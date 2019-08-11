@@ -7,16 +7,16 @@ PATTERNS = {
 REGEXPS = {name: re.compile(pattern) for name, pattern in PATTERNS.items()}
 
 
-def required(instance, field, value):
+def required(instance, field, value, message=None):
     if not value:
-        raise ValueError(f'The {field} is required')
+        raise ValueError(message or f'{field} is required')
 
 
 def phone_number(instance, field, value, message=None):
     if re.match(REGEXPS['phone'], value) is None:
-        raise ValueError(message or f'The {field} does not match the valid pattern.')
+        raise ValueError(message or f'{field} does not match the valid pattern.')
 
 
 def email(instance, field, value, message=None):
     if re.match(REGEXPS['email'], value) is None:
-        raise ValueError(message or f'The {field} does not match the valid pattern.')
+        raise ValueError(message or f'{field} does not match the valid pattern.')
