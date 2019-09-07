@@ -1,19 +1,18 @@
 import json, sys
-from dataclasses import asdict
+import dataclasses
 from .util import JSONEncoder
+from . import validators
 
 
 class Model:
     """
-    Create a model that builds on @dataclasses.dataclass to provide:
+    Create a model that builds on dataclasses to provide:
     * automatic post-init
     * converters 
     * validators
-    * input
-    * output
+    * input from data
+    * output to data
     """
-    CONVERTERS = {}
-    VALIDATORS = {}
 
     @classmethod
     def from_data(cls, data, keys=None):
@@ -30,8 +29,9 @@ class Model:
                 if value:
                     # if converters are specified, use those;
                     # otherwise, cast the value to the field_type
-                    if field in self.CONVERTERS:
-                        for converter in self.CONVERTERS[field]:
+                    field_metadata = self.__dataclass_fields__[field].metadata
+                    if 'converters' in field_metadata:
+                        for converter in field_metadata['converters']:
                             setattr(self, field, converter(value))
                     else:
                         field_type = self.__dataclass_fields__[field].type
@@ -44,9 +44,12 @@ class Model:
                                     setattr(self, field, origin_type(arg_types[0](value)))
                                 else:
                                     setattr(
-                                        self, field,
+                                        self,
+                                        field,
                                         origin_type(
-                                            arg_types[i](value[i]) for i in range(len(arg_types))))
+                                            arg_types[i](value[i]) for i in range(len(arg_types))
+                                        ),
+                                    )
                             else:
                                 setattr(self, field, origin_type(value))
                         else:
@@ -57,20 +60,20 @@ class Model:
                 exc.args = (f'{self.__class__.__name__}.{field}: ' + ' '.join(exc.args),)
                 raise
 
-    def dict(self, empty=False):
-        return {k: v for k, v in asdict(self).items() if empty is True or bool(v) is True}
+    def dict(self):
+        return {k: v for k, v in dataclasses.asdict(self).items()}
 
-    def json(self, empty=False, indent=None):
-        return json.dumps(self.dict(empty=empty), indent=indent, cls=JSONEncoder)
+    def json(self, indent=None):
+        return json.dumps(self.dict(), indent=indent, cls=JSONEncoder)
 
-    def keys(self, empty=False):
-        return self.dict(empty=empty).keys()
+    def keys(self):
+        return self.dict().keys()
 
-    def values(self, empty=False):
-        return iter([v for k, v in self.dict(empty=empty).items()])
+    def values(self):
+        return iter([v for k, v in self.dict().items()])
 
-    def items(self, empty=False):
-        return self.dict(empty=empty).items()
+    def items(self):
+        return self.dict().items()
 
     def __iter__(self):
         for key in self.keys():
@@ -84,15 +87,24 @@ class Model:
         if bool(errors) is True:
             raise ValueError("Validation failed: %s" % json.dumps(errors, indent=2))
 
-    @property    
+    @property
+    def pk(self):
+        return {
+            field: getattr(self, field)
+            for field in self.__dataclass_fields__
+            if self.__dataclass_fields__[field].metadata.get('pk')
+        }
+
+    @property
     def errors(self):
         """returns a dict of validation errors, keyed to attribute names"""
         validation_errors = {}
         for field in self.__class__.__dataclass_fields__:
-            if field in self.VALIDATORS:
-                value = self.__dict__[field]
+            field_metadata = self.__dataclass_fields__[field].metadata
+            if 'validators' in field_metadata:
+                value = getattr(self, field)
                 err = []
-                for validator in self.VALIDATORS[field]:
+                for validator in field_metadata['validators']:
                     try:
                         validator(self, field, value)
                     except ValueError:
