@@ -14,6 +14,9 @@ class Model:
     * output to data
     """
 
+    CONVERTERS = {}
+    VALIDATORS = {}
+
     @classmethod
     def from_data(cls, data, keys=None):
         """pull field values out of a data source, ignoring data that is not in the model"""
@@ -30,8 +33,12 @@ class Model:
                     # if converters are specified, use those;
                     # otherwise, cast the value to the field_type
                     field_metadata = self.__dataclass_fields__[field].metadata
-                    if 'converters' in field_metadata:
-                        for converter in field_metadata['converters']:
+
+                    converters = (field_metadata.get('converters') or []) + (
+                        self.CONVERTERS.get(field) or []
+                    )
+                    if converters:
+                        for converter in converters:
                             setattr(self, field, converter(value))
                     else:
                         field_type = self.__dataclass_fields__[field].type
@@ -93,6 +100,7 @@ class Model:
             field: getattr(self, field)
             for field in self.__dataclass_fields__
             if self.__dataclass_fields__[field].metadata.get('pk')
+            or (hasattr(self, 'PK') and field in self.PK)
         }
 
     @property
@@ -101,10 +109,13 @@ class Model:
         validation_errors = {}
         for field in self.__class__.__dataclass_fields__:
             field_metadata = self.__dataclass_fields__[field].metadata
-            if 'validators' in field_metadata:
+            validators = (field_metadata.get('validators') or []) + (
+                self.VALIDATORS.get(field) or []
+            )
+            if validators:
                 value = getattr(self, field)
                 err = []
-                for validator in field_metadata['validators']:
+                for validator in validators:
                     try:
                         validator(self, field, value)
                     except ValueError:

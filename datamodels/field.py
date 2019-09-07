@@ -2,8 +2,10 @@ import dataclasses
 from . import validators
 
 
+# NOT READY FOR USE
+
 def Field(
-    default=None, pk=False, required=False, compare=True, converter=None, validator=None, **kw
+    *, default=None, pk=False, required=False, compare=True, converter=None, validator=None, **kw
 ):
     _metadata = {**kw}
     if isinstance(default, type) or str(type(default) == "<class 'function'>"):
