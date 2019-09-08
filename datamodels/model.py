@@ -1,6 +1,6 @@
 import json, sys
 import dataclasses
-from .util import JSONEncoder
+from .util import JSONEncoder, classproperty
 from . import validators
 
 
@@ -44,27 +44,27 @@ class Model:
                     if converters:
                         for converter in converters:
                             setattr(self, field, converter(value))
-                    else:
-                        field_type = self.__dataclass_fields__[field].type
-                        # typing.List, etc. have __origin__ and __args__
-                        if field_type.__dict__.get('__origin__'):
-                            origin_type = field_type.__dict__['__origin__']
-                            if field_type.__dict__.get('__args__'):
-                                arg_types = field_type.__dict__['__args__']
-                                if len(arg_types) == 1:
-                                    setattr(self, field, origin_type(arg_types[0](value)))
-                                else:
-                                    setattr(
-                                        self,
-                                        field,
-                                        origin_type(
-                                            arg_types[i](value[i]) for i in range(len(arg_types))
-                                        ),
-                                    )
-                            else:
-                                setattr(self, field, origin_type(value))
-                        else:
-                            setattr(self, field, field_type(value))
+                    # else:
+                    #     field_type = self.__dataclass_fields__[field].type
+                    #     # typing.List, etc. have __origin__ and __args__
+                    #     if field_type.__dict__.get('__origin__'):
+                    #         origin_type = field_type.__dict__['__origin__']
+                    #         if field_type.__dict__.get('__args__'):
+                    #             arg_types = field_type.__dict__['__args__']
+                    #             if len(arg_types) == 1:
+                    #                 setattr(self, field, origin_type(arg_types[0](value)))
+                    #             else:
+                    #                 setattr(
+                    #                     self,
+                    #                     field,
+                    #                     origin_type(
+                    #                         arg_types[i](value[i]) for i in range(len(arg_types))
+                    #                     ),
+                    #                 )
+                    #         else:
+                    #             setattr(self, field, origin_type(value))
+                    #     else:
+                    #         setattr(self, field, field_type(value))
             except ValueError as exc:
                 if not exc.args:
                     exc.args = ('',)
@@ -127,3 +127,4 @@ class Model:
                 if len(err) > 0:
                     validation_errors[field] = err
         return validation_errors
+
