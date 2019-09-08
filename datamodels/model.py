@@ -17,6 +17,10 @@ class Model:
     CONVERTERS = {}
     VALIDATORS = {}
 
+    @classproperty
+    def FIELDS(cls):
+        return cls.__dataclass_fields__
+
     @classmethod
     def from_data(cls, data, keys=None):
         """pull field values out of a data source, ignoring data that is not in the model"""
