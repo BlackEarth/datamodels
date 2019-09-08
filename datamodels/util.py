@@ -4,20 +4,21 @@ import re
 
 
 class JSONEncoder(json.JSONEncoder):
-
     def default(self, obj):
         if isinstance(obj, datetime) or isinstance(obj, date) or isinstance(obj, time):
             return str(obj)
         return super().default(obj)
 
 
-class classproperty(object):
+class classproperty(property):
+    def __get__(self, obj, objtype=None):
+        return super(classproperty, self).__get__(objtype)
 
-    def __init__(self, getter):
-        self.getter = getter
+    def __set__(self, obj, value):
+        super(classproperty, self).__set__(type(obj), value)
 
-    def __get__(self, instance, owner):
-        return self.getter(owner)
+    def __delete__(self, obj):
+        super(classproperty, self).__delete__(type(obj))
 
 
 def nameify(string, ascii=False, sep='_'):
@@ -33,8 +34,10 @@ def camelsplit(string):
     """Turn a CamelCase string into a string with spaces"""
     s = str(string)
     for i in range(len(s) - 1, -1, -1):
-        if i != 0 and ((s[i].isupper() and s[i - 1].isalnum() and not s[i - 1].isupper()) or
-                       (s[i].isnumeric() and s[i - 1].isalpha())):
+        if i != 0 and (
+            (s[i].isupper() and s[i - 1].isalnum() and not s[i - 1].isupper())
+            or (s[i].isnumeric() and s[i - 1].isalpha())
+        ):
             s = s[:i] + ' ' + s[i:]
     return s.strip()
 
