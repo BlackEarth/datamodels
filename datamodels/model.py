@@ -71,20 +71,24 @@ class Model:
                 exc.args = (f'{self.__class__.__name__}.{field}: ' + ' '.join(exc.args),)
                 raise
 
-    def dict(self):
-        return {k: v for k, v in dataclasses.asdict(self).items()}
+    def dict(self, nulls=True):
+        return {k: v for k, v in dataclasses.asdict(self).items() if nulls or v}
 
-    def json(self, indent=None):
-        return json.dumps(self.dict(), indent=indent, cls=JSONEncoder)
+    def json(self, indent=None, nulls=True):
+        return json.dumps(self.dict(nulls=nulls), indent=indent, cls=JSONEncoder)
 
-    def keys(self):
-        return self.dict().keys()
+    def json_dict(self, indent=None, nulls=True):
+        """return a plain-jsonable dict"""
+        return json.loads(self.json(indent=indent, nulls=nulls))
 
-    def values(self):
-        return iter([v for k, v in self.dict().items()])
+    def keys(self, nulls=True):
+        return self.dict(nulls=nulls).keys()
 
-    def items(self):
-        return self.dict().items()
+    def values(self, nulls=True):
+        return iter([v for k, v in self.dict(nulls=nulls).items()])
+
+    def items(self, nulls=True):
+        return self.dict(nulls=nulls).items()
 
     def __iter__(self):
         for key in self.keys():
@@ -127,4 +131,3 @@ class Model:
                 if len(err) > 0:
                     validation_errors[field] = err
         return validation_errors
-
