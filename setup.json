@@ -1,6 +1,6 @@
 {
   "name": "datamodels",
-  "version": "0.6.0",
+  "version": "0.8.0",
   "description": "Models for Pythonistas",
   "url": "https://github.com/blackearth/datamodels",
   "author": "Sean Harrison",

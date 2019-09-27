@@ -1,1 +1,2 @@
 -r install.txt
+twine==2.0.0
