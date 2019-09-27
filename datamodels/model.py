@@ -1,85 +1,106 @@
 import json, sys
 import dataclasses
-from .util import JSONEncoder, classproperty
-from . import validators
+from .util import classproperty, JSONEncoder
 
 
 class Model:
     """
-    Create a model that builds on dataclasses to provide:
-    * automatic post-init
-    * converters 
-    * validators
-    * input from data
-    * output to data
+    A model for data that builds on dataclasses to provide:
+    
+    * CONVERTERS – automatic post-init input field CONVERTERS
+    * VALIDATORS – field validators, exposed via the .errors property
+    * .load() – input from data
+    * .dict() – output to data
+
+    Any data model inherits from Model and includes the dataclass declaration form. 
+
+    Example: Person model that converts a birthdate to a datetime, 
+    and validates that the title, if given, is in {'Mr', 'Ms', 'Mrs', 'Dr'}:
+
+    >>> from dataclasses import dataclass
+    >>> from datetime import datetime, date
+    >>> import dateparser  # pip install dateparser
+    >>> from datamodels import Model  # pip install datamodels
+    >>> 
+    >>> @dataclass
+    >>> class Person(Model):
+    ...     ### use normal dataclass declaration forms for required and optional fields. 
+    ...     name: str
+    ...     title: str = None
+    ...     birthdate: date = field(default=None)
+    ... 
+    ...     class CONVERTERS:
+    ...         def birthdate(value):
+    ...             return (
+    ...                 dateparser.parse(value).date()
+    ...                 if not isinstance(value, (datetime, date))
+    ...                 else value
+    ...             )
+    ... 
+    ...     class VALIDATORS:
+    ...         def title(instance, field, value):
+    ...             print(instance, field, value)
+    ...             values = {'Mr', 'Ms', 'Mrs', 'Dr'}
+    ...             if value is not None and value not in values:
+    ...                 raise ValueError(f'{field} must be one of {values}.')
+    ... 
+    >>> person = Person(name='Joe', title='The', birthdate='Jan 20, 1990')
+    >>> person.birthdate
+    datetime.date(1990, 1, 20)
+    >>> person.title
+    'The'
+    >>> person.errors
+    {'title': ["title must be one of ['Mr', 'Ms', 'Mrs', 'Dr']."]}
+    >>> 
     """
 
-    CONVERTERS = {}
-    VALIDATORS = {}
+    CONVERTERS = object()
+    VALIDATORS = object()
 
     @classproperty
     def FIELDS(cls):
         return cls.__dataclass_fields__
 
     @classmethod
-    def load(cls, data, keys=None):
-        """pull field values out of a data source, ignoring data that is not in the model"""
-        if not keys:
-            keys = cls.__dataclass_fields__.keys()
-        return cls(**{key: data[key] for key in keys if key in data})
+    def load(cls, data, fields=None):
+        """
+        Load field values from data source, ignoring fields that are not in the model.
+        """
+        if not fields:
+            fields = cls.__dataclass_fields__.keys()
+        return cls(
+            **{
+                field: data[field]
+                for field in fields
+                if field in data and field in cls.__dataclass_fields__
+            }
+        )
 
     def __post_init__(self):
-        """cast the input field values to the declared type, and then run any declared converters"""
+        """
+        Run any declared converters.
+        """
         for field in self.__dataclass_fields__:
-            try:
-                value = getattr(self, field)
-                if value:
-                    # if converters are specified, use those;
-                    # otherwise, cast the value to the field_type
-                    field_metadata = self.__dataclass_fields__[field].metadata
+            value = getattr(self, field)
+            if value:
+                field_metadata = self.__dataclass_fields__[field].metadata
+                if hasattr(self.CONVERTERS, field):
+                    converter = getattr(self.CONVERTERS, field)
+                    setattr(self, field, converter(value))
 
-                    converters = (field_metadata.get('converters') or []) + (
-                        self.CONVERTERS.get(field) or []
-                    )
-                    if converters:
-                        for converter in converters:
-                            setattr(self, field, converter(value))
-                    # else:
-                    #     field_type = self.__dataclass_fields__[field].type
-                    #     # typing.List, etc. have __origin__ and __args__
-                    #     if field_type.__dict__.get('__origin__'):
-                    #         origin_type = field_type.__dict__['__origin__']
-                    #         if field_type.__dict__.get('__args__'):
-                    #             arg_types = field_type.__dict__['__args__']
-                    #             if len(arg_types) == 1:
-                    #                 setattr(self, field, origin_type(arg_types[0](value)))
-                    #             else:
-                    #                 setattr(
-                    #                     self,
-                    #                     field,
-                    #                     origin_type(
-                    #                         arg_types[i](value[i]) for i in range(len(arg_types))
-                    #                     ),
-                    #                 )
-                    #         else:
-                    #             setattr(self, field, origin_type(value))
-                    #     else:
-                    #         setattr(self, field, field_type(value))
-            except ValueError as exc:
-                if not exc.args:
-                    exc.args = ('',)
-                exc.args = (f'{self.__class__.__name__}.{field}: ' + ' '.join(exc.args),)
-                raise
+    def __iter__(self):
+        for key in self.keys():
+            yield key
 
     def dict(self, nulls=True):
-        return {k: v for k, v in dataclasses.asdict(self).items() if nulls or v}
+        return {
+            key: val for key, val in dataclasses.asdict(self).items() if nulls or val
+        }
 
-    def json(self, indent=None, nulls=True):
-        return json.dumps(self.dict(nulls=nulls), indent=indent, cls=JSONEncoder)
-
-    def json_dict(self, indent=None, nulls=True):
-        """return a plain-jsonable dict"""
-        return json.loads(self.json(indent=indent, nulls=nulls))
+    def json(self, nulls=True, encoder=None):
+        if not encoder:
+            encoder = JSONEncoder
+        return json.dumps(self.dict(nulls=nulls), cls=encoder)
 
     def keys(self, nulls=True):
         return self.dict(nulls=nulls).keys()
@@ -90,9 +111,20 @@ class Model:
     def items(self, nulls=True):
         return self.dict(nulls=nulls).items()
 
-    def __iter__(self):
-        for key in self.keys():
-            yield key
+    @property
+    def errors(self):
+        """returns a dict of validation errors, keyed to attribute names"""
+        validation_errors = {}
+        for field in self.__class__.__dataclass_fields__:
+            if hasattr(self.VALIDATORS, field):
+                validator = getattr(self.VALIDATORS, field)
+                value = getattr(self, field)
+                try:
+                    validator(self, field, value)
+                except ValueError:
+                    validation_errors[field] = str(sys.exc_info()[1])
+
+        return validation_errors
 
     def is_valid(self):
         return not (bool(self.errors))
@@ -100,34 +132,6 @@ class Model:
     def assert_valid(self):
         errors = self.errors
         if bool(errors) is True:
-            raise ValueError("Validation failed: %s" % json.dumps(errors, indent=2))
-
-    @property
-    def pk(self):
-        return {
-            field: getattr(self, field)
-            for field in self.__dataclass_fields__
-            if self.__dataclass_fields__[field].metadata.get('pk')
-            or (hasattr(self, 'PK') and field in self.PK)
-        }
-
-    @property
-    def errors(self):
-        """returns a dict of validation errors, keyed to attribute names"""
-        validation_errors = {}
-        for field in self.__class__.__dataclass_fields__:
-            field_metadata = self.__dataclass_fields__[field].metadata
-            validators = (field_metadata.get('validators') or []) + (
-                self.VALIDATORS.get(field) or []
+            raise ValueError(
+                "Validation failed: %s" % json.dumps(errors, cls=JSONEncoder)
             )
-            if validators:
-                value = getattr(self, field)
-                err = []
-                for validator in validators:
-                    try:
-                        validator(self, field, value)
-                    except ValueError:
-                        err.append(str(sys.exc_info()[1]))
-                if len(err) > 0:
-                    validation_errors[field] = err
-        return validation_errors
