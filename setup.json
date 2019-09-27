@@ -1,8 +1,8 @@
 {
   "name": "datamodels",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Models for Pythonistas",
-  "url": "https://github.com/blackearth/datamodels",
+  "url": "https://github.com/BlackEarth/datamodels",
   "author": "Sean Harrison",
   "author_email": "sah@bookgenesis.com",
   "license": "MPL 2.0",
