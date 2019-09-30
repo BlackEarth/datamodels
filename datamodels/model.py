@@ -102,6 +102,10 @@ class Model:
             encoder = JSONEncoder
         return json.dumps(self.dict(nulls=nulls), cls=encoder)
 
+    def json_dict(self, nulls=True):
+        """Provide a raw json-dump-able representation of the data."""
+        return json.loads(self.json(nulls=nulls))
+
     def keys(self, nulls=True):
         return self.dict(nulls=nulls).keys()
 
