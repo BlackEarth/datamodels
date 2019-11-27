@@ -71,7 +71,7 @@ class Model:
         return cls(
             **{
                 field: data[field]
-                for field in fields
+                for field in list(fields)
                 if field in data and field in cls.__dataclass_fields__
             }
         )
@@ -94,7 +94,9 @@ class Model:
 
     def dict(self, nulls=True):
         return {
-            key: val for key, val in dataclasses.asdict(self).items() if nulls or val
+            key: val
+            for key, val in dataclasses.asdict(self).items()
+            if nulls or val is not None
         }
 
     def json(self, nulls=True, encoder=None):
