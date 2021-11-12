@@ -1,3 +1,7 @@
+# DEPRECATED
+
+Just use [Pydantic](https://github.com/samuelcolvin/pydantic/), which serves the same purpose and does it better.
+
 # datamodels
 
 The datamodels package builds on dataclasses and adds the following functionality:
